@@ -6,12 +6,12 @@ nB = H; %Number of Binary Variables
 % Build xtype vector
 xtype = [repmat('C',1,15*nC),repmat('B',1,9*nB)]
 % Cost coefficients 
-CO&M = 2;% operational and maintenance cost of CHP
-Kf = ones(H,1)*0.17; %fuel cost
-Kb = ones(H,1)*0.045;
-        k(7:19) = 0.070 ;
-Ks =  k = ones(H,1)*0.040;
-        k(7:19) = 0.060 ;   
+COM = 2;% operational and maintenance cost of CHP
+kf = ones(H,1)*0.17; %fuel cost
+kb = ones(H,1)*0.045; % cost of energy bought
+        kb(7:19) = 0.070 ;
+ks = ones(H,1)*0.040; % cost of energy sold
+        ks(7:19) = 0.060 ;   
 % non-controllable loads consumption profile
 
 bload = [ 0.6 0.6 0.4 0.4 0.4 0.4 0.8 1.0 0.8 0.7 1.0 1.5 ...
@@ -60,7 +60,7 @@ gpsoft = 0.8*gp_max; % maximum soft importing energy
 gm_max = 4; % maximum exporting energy
 gmsoft = 0.7*gm_max; % maximum soft exporting energy
 % CHP parameters
-etachp_tot = 1; % total CHP efficiency 
+etachp_tot = 0.9; % total CHP efficiency 
 etachp_el = 0.20*etachp_tot; % electrical CHP efficiency
 etachp_th = 0.80*etachp_tot; % thermal CHP efficiency
 fchp_max = 5; % maximum fuel burned in CHP
@@ -99,5 +99,6 @@ Ks = diag(ks);
 Q1 = [zeros(H*22,H*H)];
 Q2 = [zeros(2*H,H*22)];
 Q3 = [eye(H)*Kb,zeros(H);zeros(H),(eye(H))*Ks];
-f = [zeros(1,H*4),Kb,zeros(1,H),-Ks,zeros(1,H*3),(Kf+ones(1,H)*COM)*etachp_tot,...
-    zeros(1,H),Kf,zeros(1,H*11)];
+f = [zeros(1,H*4),kb',zeros(1,H),-ks',zeros(1,H*3),(kf'+ones(1,H)*COM*etachp_tot),...
+    zeros(1,H),kf',zeros(1,H*11)];
+
