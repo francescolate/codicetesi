@@ -1,0 +1,83 @@
+H=24;
+% Objective
+nC = H; %Number of Continuous Variables
+nB = H; %Number of Binary Variables
+
+% Build xtype vector
+xtype = [repmat('C',1,15*nC),repmat('B',1,9*nB)]
+% Cost coefficients 
+CO&M = 2;% operational and maintenance cost of CHP
+Kf = ones(H,1)*0.17; %fuel cost
+Kb = ones(H,1)*0.045;
+        k(7:19) = 0.070 ;
+Ks =  k = ones(H,1)*0.040;
+        k(7:19) = 0.060 ;   
+% non-controllable loads consumption profile
+
+bload = [ 0.6 0.6 0.4 0.4 0.4 0.4 0.8 1.0 0.8 0.7 1.0 1.5 ...
+    2.2 1.9 1.8 1.6 1.6 0.5 0.5 0.7 1.0 0.8 0.4 0.4 ]' ;   
+% thermal loads consumption profile
+qheat = [0.2 0.2 0.2 0.2 0.2 0.2 0.2 1.2 0.4 0.7 1.0 1.0 ...
+    1.2 1.3 1.2 1.0 1.0 0.5 0.5 0.7 1.2 0.9 0.7 0.2 ]' ;  
+% RES production profile
+res = 1.2*[ 0.0 0.0 0.0 0.0 0.1 0.3 0.7 1.1 1.5 2.0 1.4 0.7 ...
+            0.3 0.1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ]' ;
+% controllable loads parameters
+%washing machine
+xmin = 0.4  *ones(H,1); % minimum required energy per slot
+xmax = 1.3 *ones(H,1); % maximum required energy per slot
+Xtot = 3;
+%oven
+xmin1 = 1*ones(H,1);
+xmax1 = 5*ones(H,1);
+X1tot = 10;
+%dishwasher
+xmin2 = 1.1*ones(H,1);
+xmax2 = 1.5*ones(H,1);
+X2tot = 3;
+%cooktop
+xmin3 = 0.2*ones(H,1);
+xmax3 = 1.6*ones(H,1);
+X3tot = 4;
+% electrical storage parameters
+sp_max = 1; % maximum charging energy per slot
+sm_max = sp_max; % maximum discharging energy per slot
+Smax = 30; % maximum state of charge
+S0 = 0; % initial state of charge
+etaps=1; % charging battery efficiency 
+etams=1; % discharging battery efficiency
+% thermal storage parameters
+spv_max = 1; % maximum charging thermal storage per slot
+smv_max = spv_max; % maximum discharging thermal storage energy per slot
+Smaxv = 30; % maximum state of charge of thermal storage
+S0v = 0; % initial state of charge of thermal storage
+etapv=1; % charging thermal storage efficiency 
+etamv=1; % discharging thermal storage efficiency
+% importing energy parameters
+gp_max = 5; %maximum importing energy
+gpsoft = 0.8*gp_max; % maximum soft importing energy
+% exporting energy parameters
+gm_max = 4; % maximum exporting energy
+gmsoft = 0.7*gm_max; % maximum soft exporting energy
+% CHP parameters
+etachp_tot = 1; % total CHP efficiency 
+etachp_el = 0.20*etachp_tot; % electrical CHP efficiency
+etachp_th = 0.80*etachp_tot; % thermal CHP efficiency
+fchp_max = 5; % maximum fuel burned in CHP
+fchp_min = 1; % minimum fuel burned in CHP
+pchp_max = fchp_max*etachp_el;% maximum electrical generation CHP
+pchp_min = fchp_min*etachp_el; % minimum electrical generaation CHP
+qchp_max = fchp_max*etachp_th; % maximum thermal generation CHP
+qchp_min = fchp_min*etachp_th; % minimum thermal generation CHP
+% boiler parameters
+etaboil = 1; % boiler efficiency
+fboil_max = 2.7; % maximum fuel burned in boiler
+fboil_min = 0.5; % minimum fuel burned in boiler
+qboil_max = fboil_max*etaboil; %maximum boiler thermal generation 
+qboil_min = fboil_min*etaboil; %minimum boiler thermal generation
+% heat pump paramters
+COP = 4; %coefficient of performance of the heat pump
+php_max = 3; % maximum heat pump electrical input 
+php_min = 0.5; % minimum heat pump electrical input
+qhp_max = COP*php_max; % maximum heat pump thermal generation
+qhp_min = COP*php_min; % minimum heat pump thermal generation
