@@ -99,3 +99,5 @@ Ks = diag(ks);
 Q1 = [zeros(H*22,H*H)];
 Q2 = [zeros(2*H,H*22)];
 Q3 = [eye(H)*Kb,zeros(H);zeros(H),(eye(H))*Ks];
+f = [zeros(1,H*4),Kb,zeros(1,H),-Ks,zeros(1,H*3),(Kf+ones(1,H)*COM)*etachp_tot,...
+    zeros(1,H),Kf,zeros(1,H*11)];
