@@ -81,3 +81,21 @@ php_max = 3; % maximum heat pump electrical input
 php_min = 0.5; % minimum heat pump electrical input
 qhp_max = COP*php_max; % maximum heat pump thermal generation
 qhp_min = COP*php_min; % minimum heat pump thermal generation
+%--------------------------------------------------------------------------
+
+
+% resolution through "opti"
+%--------------------------------------------------------------------------
+% solve the quadratic programming problem:
+%              min 0.5*x'*Q*x + f'*x    
+%               x    
+%              subject to:  A*x <= b
+%                           Aeq*x = beq
+%                           lb <= x <= ub
+%
+% Q and f
+Kb = diag(kb);
+Ks = diag(ks);
+Q1 = [zeros(H*22,H*H)];
+Q2 = [zeros(2*H,H*22)];
+Q3 = [eye(H)*Kb,zeros(H);zeros(H),(eye(H))*Ks];
