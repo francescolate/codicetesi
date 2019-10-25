@@ -101,4 +101,20 @@ Q2 = [zeros(2*H,H*22)];
 Q3 = [eye(H)*Kb,zeros(H);zeros(H),(eye(H))*Ks];
 f = [zeros(1,H*4),kb',zeros(1,H),-ks',zeros(1,H*3),(kf'+ones(1,H)*COM*etachp_tot),...
     zeros(1,H),kf',zeros(1,H*11)];
-
+%equality constraints 
+%washing machine controllable load
+Aeq_x = [ ones(1,H) zeros(1,23*H) ];
+beq_x = Xtot;
+%oven  controllabl load
+Aeq_x1 = [ zeros(1,H) ones(1,H) zeros(1,22*H) ];
+beq_x1 = X1tot;
+%dishwasher controllable load
+Aeq_x2 = [ zeros(1,H) ones(1,H) zeros(1,21*H) ];
+beq_x2 = X2tot;
+%cooktop controllable load
+Aeq_x3 = [ zeros(1,H) ones(1,H) zeros(1,20*H) ];
+beq_x3 = X3tot;
+%equality electrical balance, H equality constraints
+Aeq_el = [eye(H), eye(H), eye(H), eye(H), -eye(H), zeros(H), eye(H), zeros(H),...
+    eye(H), zeros(H,5*H),eye(H),zeros(H),-eye(H),zeros(H,7*H)];
+beq_el = [res-bload];
