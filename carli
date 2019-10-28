@@ -118,3 +118,64 @@ beq_x3 = X3tot;
 Aeq_el = [eye(H), eye(H), eye(H), eye(H), -eye(H), zeros(H), eye(H), zeros(H),...
     eye(H), zeros(H,5*H),eye(H),zeros(H),-eye(H),zeros(H,7*H)];
 beq_el = [res-bload];
+%equality thermal energy balance, H equality constraints
+Aeq_th = [zeros(H,8*H),COP*eye(H),zeros(H), etachp_th*eye(H),zeros(H),...
+    etaboil*eye(H),zeros(H,5*H),-eye(H),zeros(H),eye(H), zeros(H,3*H)];
+beq_th = qheat;
+%
+Aeq = [ Aeq_x ; Aeq_x1;Aeq_x2; Aeq_x3; Aeq_el; Aeq_th ];
+beq = [ beq_x ; beq_x1; beq_x2; beq_x3; beq_el; beq_th ];
+%inequality constraints
+%Maximum and minimum energy exchanged with utility grid
+% inequality constraints g_p-delta_p*gp_max <= 0 & -g_p+delta_p*gp_max <= 0
+A_gp1 = [zeros(H,4*H), eye(H), -gp_max*eye(H), zeros(H,18*H)];
+b_gp1 = zeros(H,1);
+A_gp2 = [zeros(H,4*H), -eye(H), zeros(H,19*H)];
+b_gp2 = zeros(H,1);
+% inequality constraints g_m-delta_m*gm_max <= 0 & -g_m+delta_m*gm_max <= 0
+A_gm1 = [zeros(H,6*H), eye(H), -gm_max*eye(H), zeros(H,16*H)];
+b_gm1 = zeros(H,1);
+A_gm2 = [zeros(H,6*H), -eye(H),zeros(H,17*H)];
+b_gm2 = zeros(H,1);
+% inequality constraint delta_p+delta_m <= 0
+A_gdelta = [zeros(H,5*H), eye(H),zeros(H),eye(H),zeros(H,16*H)];
+b_gdelta = ones(H,1);
+% Energy storage system modeling
+% inequality constraints z_ps-delta_p*sp_max <= 0 & -z_ps+delta_p*sp_max <= 0
+A_zps1 = [zeros(H,14*H), eye(H), -sp_max*eye(H), zeros(H,8*H)];
+b_zps1 = zeros(H,1);
+A_zps2 = [zeros(H,14*H), -eye(H), zeros(H,9*H)];
+b_zps2 = zeros(H,1);
+% inequality constraints z_ms-delta_m*sm_max <= 0 & -z_ms+delta_m*sm_max <= 0
+A_zms1 = [zeros(H,16*H), eye(H), -sm_max*eye(H), zeros(H,6*H)];
+b_zms1 = zeros(H,1);
+A_zms2 = [zeros(H,16*H), -eye(H),zeros(H,7*H)];
+b_zms2 = zeros(H,1);
+% inequality constraint delta_p+delta_m <= 0
+A_zsdelta = [zeros(H,15*H), eye(H),zeros(H),eye(H),zeros(H,6*H)];
+b_zsdelta = ones(H,1);
+% maximum battery storage capacity
+% 2*H inequality constraints -> battery storage
+A_1sp=[];  
+for h=1:H
+    a1sp = [ etaps*ones(1,h), zeros(1,H-h), +1/etams*ones(1,h), zeros(1,H-h) ];
+    A_1sp=[A_1;a1sp];
+end
+A_2sp=[];
+for h=1:H
+    a2sp = [-etaps*ones(1,h), zeros(1,H-h), -1/etams*ones(1,h), zeros(1,H-h) ];
+    A_2sp=[A_2sp;a2sp];
+end
+A1sp =[zeros(H,14*H),A_1sp; zeros(H,14*H), A_2sp];
+bsp =[(Smax-S0)*ones(H,1); S0*ones(H,1) ];
+%Micro CHP modeling
+% inequality constraints pchp-delta_chp*pchp_max <= 0 & -pchp+delta_chp*chp_max <= 0
+A_pchp1 = [zeros(H,10*H), eye(H)*etachp_el, -pchp_max*eye(H), zeros(H,12*H)];
+b_pchp1 = zeros(H,1);
+A_pchp2 = [zeros(H,10*H), -eye(H)*etachp_el, pchp_min*eye(H) zeros(H,12*H)];
+b_pchp2 = zeros(H,1);
+%inequality constraints qchp-delta_qhp*qchp_max <= 0 & -qchp+delta_qhp*qhp_max <= 0
+A_qchp1 = [zeros(H,10*H), eye(H)*etachp_th, -qchp_max*eye(H), zeros(H,12*H)];
+b_qchp1 = zeros(H,1);
+A_qchp2 = [zeros(H,10*H), -eye(H), pchp_min*eye(H) zeros(H,12*H)];
+b_qchp2 = zeros(H,1);
