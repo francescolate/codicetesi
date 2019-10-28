@@ -179,3 +179,30 @@ A_qchp1 = [zeros(H,10*H), eye(H)*etachp_th, -qchp_max*eye(H), zeros(H,12*H)];
 b_qchp1 = zeros(H,1);
 A_qchp2 = [zeros(H,10*H), -eye(H), pchp_min*eye(H) zeros(H,12*H)];
 b_qchp2 = zeros(H,1);
+%inequality constraints fchp-delta_fchp*fchp_max <= 0 & -fchp+delta_fchp*fchp_max <= 0
+A_fchp1 = [zeros(H,10*H), eye(H), -fchp_max*eye(H), zeros(H,12*H)];
+b_fchp1 = zeros(H,1);
+A_fchp2 = [zeros(H,10*H), -eye(H), fchp_min*eye(H) zeros(H,12*H)];
+b_fchp2 = zeros(H,1);
+%Heat pump modeling
+%inequality constraints qhp-delta_qhp*qhp_max <= 0 & -qhp+delta_qhp*qhp_max <= 0
+A_qhp1 = [zeros(H,8*H), eye(H)*COP, -qhp_max*eye(H), zeros(H,14*H)];
+b_qhp1 = zeros(H,1);
+A_qhp2 = [zeros(H,8*H), -eye(H)*COP, qhp_min*eye(H) zeros(H,12*H)];
+b_qhp2 = zeros(H,1);
+%inequality constraints php-delta_php*php_max <= 0 & -php+delta_php*php_max <= 0
+A_php1 = [zeros(H,8*H), eye(H), -php_max*eye(H), zeros(H,14*H)];
+b_php1 = zeros(H,1);
+A_php2 = [zeros(H,8*H), -eye(H), php_min*eye(H) zeros(H,12*H)];
+b_php2 = zeros(H,1);
+%Boiler
+%inequality constraints qboil-delta_boil*qboil_max <= 0 & -qboil+delta_boil*qboil_max <= 0
+A_qboil1 = [zeros(H,12*H), eye(H)*etaboil, -qboil_max*eye(H), zeros(H,10*H)];
+b_qboil1 = zeros(H,1);
+A_qboil2 = [zeros(H,12*H), -eye(H)*etaboil, qboil_min*eye(H) zeros(H,12*H)];
+b_qboil2 = zeros(H,1);
+%inequality constraints fboil-delta_boil*fboil_max <= 0 & -fboil+delta_boil*fboil_max <= 0
+A_fboil1 = [zeros(H,12*H), eye(H), -fboil_max*eye(H), zeros(H,10*H)];
+b_fboil1 = zeros(H,1);
+A_fboil2 = [zeros(H,12*H), -eye(H), fboil_min*eye(H) zeros(H,12*H)];
+b_fboil2 = zeros(H,1);
