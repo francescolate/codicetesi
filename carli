@@ -20,28 +20,28 @@ ks = ones(H,1)*0.040; % cost of energy sold
 bload = [ 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ...
     1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ]' ;   
 % thermal loads consumption profile
-qheat = [1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ...
+qheat = 2.1*[1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ...
     1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ]' ;  
 % RES production profile
 res = 1.0*[1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ...
     1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ]' ;  
 % controllable loads parameters
 %washing machine
-xmin = 0.4  *ones(H,1); % minimum required energy per slot
+xmin = 0.1  *ones(H,1); % minimum required energy per slot
 xmax = 1.3 *ones(H,1); % maximum required energy per slot
-Xtot = 30;
+Xtot = 5;
 %oven
-xmin1 = 1*ones(H,1);
+xmin1 = 0.2*ones(H,1);
 xmax1 = 5*ones(H,1);
-X1tot = 30;
+X1tot = 10;
 %dishwasher
-xmin2 = 1.1*ones(H,1);
+xmin2 = 0.2*ones(H,1);
 xmax2 = 1.5*ones(H,1);
-X2tot = 40;
+X2tot = 5;
 %cooktop
 xmin3 = 0.2*ones(H,1);
 xmax3 = 1.6*ones(H,1);
-X3tot = 20;
+X3tot = 10;
 % electrical storage parameters
 sp_max = 1; % maximum charging energy per slot
 sm_max = sp_max; % maximum discharging energy per slot
@@ -81,7 +81,7 @@ qboil_min = fboil_min*etaboil; %minimum boiler thermal generation
 % heat pump paramters
 COP = 4; %coefficient of performance of the heat pump
 php_max = 3; % maximum heat pump electrical input 
-php_min = 0.5; % minimum heat pump electrical input
+php_min = 0.2; % minimum heat pump electrical input
 qhp_max = COP*php_max; % maximum heat pump thermal generation
 qhp_min = COP*php_min; % minimum heat pump thermal generation
 %--------------------------------------------------------------------------
