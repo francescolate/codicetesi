@@ -1,0 +1,203 @@
+H=24;
+% Objective
+nC = H; %Number of Continuous Variables
+nB = H; %Number of Binary Variables
+beta = 1;
+% Build xtype vector
+xtype = [repmat('C',1,2*nC),repmat('B',1,nB),repmat('C',1,nC),repmat('B',1,nB),...
+    repmat('C',1,nC),repmat('B',1,nB),repmat('C',1,nC),repmat('B',1,nB),repmat('C',1,2*nC)];
+% Cost coefficients 
+COM = 2;% operational and maintenance cost of CHP
+kf = ones(H,1)*0.17; %fuel cost
+kb = ones(H,1)*2; % cost of energy bought
+       
+ks = ones(H,1)*1; % cost of energy sold
+        
+% non-controllable loads consumption profile
+
+bload = [ 0.6 0.6 0.4 0.4 0.4 0.4 0.8 1.0 0.8 0.7 1.0 1.5 ...
+    2.2 1.9 1.8 1.6 1.6 0.5 0.5 0.7 1.0 0.8 0.4 0.4 ]' ;  
+% thermal loads consumption profile
+
+% RES production profile
+res = 1.2*[ 0.0 0.0 0.0 0.0 0.1 0.3 0.7 1.1 1.5 2.0 1.4 0.7 ...
+            0.3 0.1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ]' ;
+% controllable loads parameters
+%washing machine
+% controllable loads parameters
+xmin = 0 *ones(H,1); % minimum required energy per slot
+xmax = 3 *ones(H,1); % maximum required energy per slot
+Xtot = 25; % maximum required energy per slot
+
+% electrical storage parameters
+sp_max = 1; % maximum charging energy per slot
+sm_max = sp_max; % maximum discharging energy per slot
+Smax = 30; % maximum state of charge
+S0 = 0; % initial state of charge
+etaps=1; % charging battery efficiency 
+etams=1; % discharging battery efficiency
+% thermal storage parameters
+
+% importing energy parameters
+gp_max = 2; %maximum importing energy
+gpsoft = 0.4*gp_max; % maximum soft importing energy
+% exporting energy parameters
+gm_max = 1; % maximum exporting energy
+gmsoft = 0.7*gm_max; % maximum soft exporting energy
+% CHP parameters
+
+% boiler parameters
+
+%--------------------------------------------------------------------------
+
+
+% resolution through "opti"
+%--------------------------------------------------------------------------
+% solve the quadratic programming problem:
+%              min 0.5*x'*Q*x + f'*x    
+%               x    
+%              subject to:  A*x <= b
+%                           Aeq*x = beq
+%                           lb <= x <= ub
+%
+% Q and f
+Kb = diag(kb);
+Ks = diag(ks);
+Q1 = [zeros(H*9,H*11)];
+Q2 = [zeros(2*H,H*9)];
+Q3 = [eye(H)*Kb*beta,zeros(H);zeros(H),(eye(H))*Ks*beta];
+Q = [Q1;Q2,Q3];
+f = [zeros(1,H),kb',zeros(1,H),-ks',zeros(1,H*7)];
+%equality constraints 
+%washing machine controllable load
+Aeq_x = [ones(1,H) zeros(1,10*H)];
+beq_x = Xtot;
+%oven  controllabl load
+
+% 1 equality constraints -> initial==final storage level
+Aeq_z = [ zeros(1,5*H) etaps*ones(1,H) zeros(1,H) -(1/etams)*ones(1,H) zeros(1,H*3) ];
+beq_z = S0;
+%equality electrical balance, H equality constraints
+Aeq_el = [eye(H), -eye(H), zeros(H), eye(H), zeros(H),...
+   eye(H),zeros(H),-eye(H),zeros(H,H*3)];
+beq_el = [res-bload];
+%equality thermal energy balance, H equality constraints
+
+%
+Aeq = [ Aeq_x ;Aeq_z ;Aeq_el ];
+beq = [ beq_x ;beq_z; beq_el];
+%inequality constraints
+%Maximum and minimum energy exchanged with utility grid
+% inequality constraints g_p-delta_gp*gp_max <= 0 & -g_p <= 0
+A_gp1 = [zeros(H), eye(H), -gp_max*eye(H), zeros(H,8*H)];
+b_gp1 = zeros(H,1);
+A_gp2 = [zeros(H), -eye(H), zeros(H,9*H)];
+b_gp2 = zeros(H,1);
+% inequality constraints g_m-delta_gm*gm_max <= 0 & -g_m <= 0
+A_gm1 = [zeros(H,3*H), eye(H), -gm_max*eye(H), zeros(H,6*H)];
+b_gm1 = zeros(H,1);
+A_gm2 = [zeros(H,3*H), -eye(H), zeros(H,7*H)];
+b_gm2 = zeros(H,1);
+% inequality constraint delta_gp+delta_gm <= 1
+A_gdelta = [zeros(H,2*H), eye(H),zeros(H),eye(H),zeros(H,6*H)];
+b_gdelta = ones(H,1);
+% Energy storage system modeling
+% inequality constraints z_ps-delta_zp*sp_max <= 0 & -z_ps <=0
+A_zps1 = [zeros(H,5*H), eye(H), -sp_max*eye(H), zeros(H,4*H)];
+b_zps1 = zeros(H,1);
+A_zps2 = [zeros(H,5*H), -eye(H), zeros(H,5*H)];
+b_zps2 = zeros(H,1);
+% inequality constraints z_ms-delta_zm*sm_max <= 0 & -z_ms <= 0
+A_zms1 = [zeros(H,7*H), eye(H), -sm_max*eye(H) zeros(H,2*H)];
+b_zms1 = zeros(H,1);
+A_zms2 = [zeros(H,7*H), -eye(H), zeros(H,H*3)];
+b_zms2 = zeros(H,1);
+% inequality constraint delta_zp+delta_zm <= 1
+A_zsdelta = [zeros(H,6*H), eye(H),zeros(H),eye(H) zeros(H,2*H)];
+b_zsdelta = ones(H,1);
+% maximum battery storage capacity
+% 2*H inequality constraints -> battery storage
+A_1sp=[];  
+for h=1:H
+    a1sp = [ etaps*ones(1,h), zeros(1,H-h), -(1/etams)*ones(1,h), zeros(1,H-h) ];
+    A_1sp=[A_1sp;a1sp];
+end
+A_2sp=[];
+for h=1:H
+    a2sp = [-etaps*ones(1,h), zeros(1,H-h), +(1/etams)*ones(1,h), zeros(1,H-h) ];
+    A_2sp=[A_2sp;a2sp];
+end
+A_sp =[zeros(H,5*H),A_1sp,zeros(H,4*H); zeros(H,5*H), A_2sp,zeros(H,4*H)];
+b_sp =[(Smax-S0)*ones(H,1); S0*ones(H,1) ];
+%Micro CHP modeling
+% inequality constraints pchp-delta_chp*pchp_max <= 0 & -pchp+delta_chp*pchp_min <= 0
+
+%inequality constraints php-delta_php*php_max <= 0 & -php+delta_php*php_min <= 0
+%Thermal energy storage modeling
+% inequality constraints z_pv-delta_pv*spv_max <= 0 & -z_pv <= 0
+
+% maximum thermal energy storage capacity
+% 2*H inequality constraints -> thermal storage
+%inequality soft constraints: -alfa1+gp <= gp_soft
+A_gpsoft = [zeros(H), eye(H), zeros(H,7*H), -eye(H), zeros(H)];
+b_gpsoft = [ones(H,1)*gpsoft];
+%inequality soft constraints: -alfa2+gm <= gm_soft
+A_gmsoft = [zeros(H,3*H), eye(H), zeros(H,6*H), -eye(H)];
+b_gmsoft = [ones(H,1)*gmsoft];
+% A and b
+A = [A_gp1; A_gp2;A_gm1; A_gm2; A_gdelta;A_zps1;A_zps2;A_zms1;A_zms2;...
+    A_zsdelta;A_sp;A_gpsoft;A_gmsoft];
+
+b = [b_gp1; b_gp2;b_gm1; b_gm2; b_gdelta;b_zps1;b_zps2;b_zms1;b_zms2;...
+    b_zsdelta;b_sp;b_gpsoft;b_gmsoft];
+%bounding constraints
+% H bounding for each controllable load -> controllable loads
+lb_x = xmin;
+ub_x = xmax;
+
+%bounding 0<= gp <= gp_max
+lb_gp = zeros(H,1);
+ub_gp = ones(H,1)*gp_max;
+%bounding 0<= deltagp <= 1
+lb_deltagp = zeros(H,1);
+ub_deltagp = ones(H,1);
+%bounding 0<= gm <= gm_max
+lb_gm = zeros(H,1);
+ub_gm = ones(H,1)*gm_max;
+%BOUNDING 0<= deltagm <= 1
+lb_deltagm= zeros(H,1);
+ub_deltagm= ones(H,1);
+
+
+
+%bounding zsp_min<= zsp <= zsp_max
+lb_zsp = zeros(H,1);
+ub_zsp = sp_max*ones(H,1);
+%bounding 0<= deltazsp <= 1
+lb_deltazsp = zeros(H,1);
+ub_deltazsp = ones(H,1);
+%bounding zsm_min<= zsm <= zsm_max
+lb_zsm = zeros(H,1);
+ub_zsm = sm_max*ones(H,1);
+%bounding 0<= deltazsp <= 1
+lb_deltazsm = zeros(H,1);
+ub_deltazsm = ones(H,1);
+%bounding  soft constraints 0<= alfa1 <= +inf
+lb_alfa1 = zeros(H,1);
+ub_alfa1 = inf(H,1);
+%bounding  soft constraints 0<= alfa2 <= +inf
+lb_alfa2 = zeros(H,1);
+ub_alfa2 = inf(H,1);
+
+% lb & ub
+lb = [lb_x;lb_gp;lb_deltagp;lb_gm;lb_deltagm;...
+    
+    lb_zsp;lb_deltazsp;lb_zsm;lb_deltazsm;lb_alfa1;lb_alfa2 ];
+ub = [ub_x;ub_gp;ub_deltagp;ub_gm;ub_deltagm;...
+    
+    ub_zsp;ub_deltazsp;ub_zsm;ub_deltazsm;ub_alfa1;ub_alfa2 ];
+% Create OPTI Object
+Opt = opti('qp',Q,f,'ineq',A,b,'eq',Aeq,beq,'lb',lb,'ub',ub,'xtype',xtype);
+
+% Solve the MIQP problem
+[xval,fval,exitflag,info] = solve(Opt)
