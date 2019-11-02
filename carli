@@ -17,14 +17,14 @@ ks = ones(H,1)*0.040; % cost of energy sold
         ks(7:19) = 0.060 ;   
 % non-controllable loads consumption profile
 
-bload = [ 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ...
-    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ]' ;   
+bload = [ 0.6 0.6 0.4 0.4 0.4 0.4 0.8 1.0 0.8 0.7 1.0 1.5 ...
+    2.2 1.9 1.8 1.6 1.6 0.5 0.5 0.7 1.0 0.8 0.4 0.4 ]' ;    
 % thermal loads consumption profile
-qheat = 2.1*[1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ...
-    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ]' ;  
+qheat = [7.6 8.0 7.6 86.0 86.0 86.0 12.0 13.0 12.0 8.0 8.0 8.0 ...
+    8.0 86.0 86.0 86.0 12.0 12.0 12.0 12.0 8.0 8.0 8.0 8.0 ]' ;  
 % RES production profile
-res = 1.0*[1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ...
-    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ]' ;  
+res = 1.2*[ 0.0 0.0 0.0 0.0 0.1 0.3 0.7 1.1 1.5 2.0 1.4 0.7 ...
+            0.3 0.1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ]' ;  
 % controllable loads parameters
 %washing machine
 xmin = 0.1  *ones(H,1); % minimum required energy per slot
@@ -50,7 +50,7 @@ S0 = 0; % initial state of charge
 etaps=1; % charging battery efficiency 
 etams=1; % discharging battery efficiency
 % thermal storage parameters
-spv_max = 1; % maximum charging thermal storage per slot
+spv_max = 10; % maximum charging thermal storage per slot
 smv_max = spv_max; % maximum discharging thermal storage energy per slot
 Smaxv = 30; % maximum state of charge of thermal storage
 S0v = 0; % initial state of charge of thermal storage
@@ -66,7 +66,7 @@ gmsoft = 0.7*gm_max; % maximum soft exporting energy
 etachp_tot = 0.9; % total CHP efficiency 
 etachp_el = 0.20*etachp_tot; % electrical CHP efficiency
 etachp_th = 0.80*etachp_tot; % thermal CHP efficiency
-fchp_max = 5; % maximum fuel burned in CHP
+fchp_max = 30; % maximum fuel burned in CHP
 fchp_min = 1; % minimum fuel burned in CHP
 pchp_max = fchp_max*etachp_el;% maximum electrical generation CHP
 pchp_min = fchp_min*etachp_el; % minimum electrical generaation CHP
@@ -74,13 +74,13 @@ qchp_max = fchp_max*etachp_th; % maximum thermal generation CHP
 qchp_min = fchp_min*etachp_th; % minimum thermal generation CHP
 % boiler parameters
 etaboil = 1; % boiler efficiency
-fboil_max = 2.7; % maximum fuel burned in boiler
+fboil_max = 30; % maximum fuel burned in boiler
 fboil_min = 0.5; % minimum fuel burned in boiler
 qboil_max = fboil_max*etaboil; %maximum boiler thermal generation 
 qboil_min = fboil_min*etaboil; %minimum boiler thermal generation
 % heat pump paramters
 COP = 4; %coefficient of performance of the heat pump
-php_max = 3; % maximum heat pump electrical input 
+php_max = 10; % maximum heat pump electrical input 
 php_min = 0.2; % minimum heat pump electrical input
 qhp_max = COP*php_max; % maximum heat pump thermal generation
 qhp_min = COP*php_min; % minimum heat pump thermal generation
@@ -377,26 +377,54 @@ xtot = x+x1+x2+x3;
 bar_width = 1;
 h1 = figure(1);
 hold on;
-hsp = bar( t, zsp+zvp+xtot+bload+gp+qheat+fchp+fboil, bar_width, 'FaceColor','w','EdgeColor','k' ) ;
-hvp   = bar( t, zvp+xtot+bload+gp+qheat+fchp+fboil, bar_width, 'FaceColor','k','EdgeColor','k'  ) ;
-hxtot  = bar( t, xtot+bload+gp+qheat+fchp+fboil,  bar_width, 'FaceColor','y','EdgeColor','k'  ) ;
-hbload = bar( t, bload+gp+qheat+fchp+fboil,  bar_width, 'FaceColor','g','EdgeColor','k' ) ;
-hgp  = bar( t, gp+qheat+fchp+fboil, bar_width, 'FaceColor','b','EdgeColor','k' ) ;
-hqheat  = bar( t, qheat+fchp+fboil, bar_width, 'FaceColor','m','EdgeColor','k' ) ;
-hfchp = bar( t,fchp+fboil, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
-hfboil  = bar( t,fboil, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
-hzsm  = bar( t, -zsm-zvm-gm-res, bar_width, 'FaceColor','w','EdgeColor','k' ) ;
-hzvm  = bar( t, -zvm-gm-res, bar_width, 'FaceColor','k','EdgeColor','k' ) ;
-hgm  = bar( t, -gm-res, bar_width, 'FaceColor','b','EdgeColor','k' ) ;
-hres  = bar( t,-res, bar_width, 'FaceColor','r','EdgeColor','k' ) ;
+hxtot  = bar( t, xtot+bload+gp+php,  bar_width, 'FaceColor','y','EdgeColor','k'  ) ;
+hbload = bar( t, bload+gp+php,  bar_width, 'FaceColor','g','EdgeColor','k' ) ;
+hgp  = bar( t, gp+php, bar_width, 'FaceColor','b','EdgeColor','k' ) ;
+hphp = bar( t,php, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
+hgm  = bar( t, -gm-res-fchp*etachp_el, bar_width, 'FaceColor','b','EdgeColor','k' ) ;
+hres  = bar( t,-res-fchp*etachp_el, bar_width, 'FaceColor','r','EdgeColor','k' ) ;
+hpchp  = bar( t,-fchp*etachp_el, bar_width, 'FaceColor','m','EdgeColor','k' ) ;
 xlabel( 'time slot', 'FontSize',12.5 ) ;
 ylabel( {'energy profile of consumption / production /'; ...
     'storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
-legend( [ hsp hvp hxtot hbload hgp hqheat hfchp hfboil hzsm hzvm hgm hres ], 'battery charge',...
-    'thermal storage charge','controllable loads','non controllable loads','importing energy',...
-    'thermal demand','gas chp burned','gas boiler burned',...
-    'battery discharge','thermals torage discharge','exporting energy',...
-    'renewable energy','Location','SouthEast' ) ;
+legend( [ hxtot hbload hgp hphp hgm hres hpchp], 'controllable loads',...
+    'non controllable loads','importing energy',...
+    'electrical input heat pump','exporting energy',...
+    'renewable energy','electrical generation chp','Location','SouthEast' ) ;
 V = axis;
+xmin = 0.5;  xmax = H+0.5;  
+axis( [ xmin xmax V(3) V(4) ] ) ;
+
+h2 = figure(2);
+hold on;
+hstop = bar( t, zsp, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
+hstom = bar( t, -zsm, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
+xlabel( 'time slot', 'FontSize',12.5 ) ;
+ylabel( {'energy profile of'; 'electrical storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
+legend( [  hstop ], 'electrical storage','Location','SouthEast' ) ;
+xmin = 0.5;  xmax = H+0.5;  
+axis( [ xmin xmax V(3) V(4) ] ) ;
+
+h3 = figure(3);
+hold on;
+hstop = bar( t, zvp, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
+hstom = bar( t, -zvm, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
+xlabel( 'time slot', 'FontSize',12.5 ) ;
+ylabel( {'energy profile of'; 'thermal storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
+legend( [  hstop ], 'thermal storage','Location','SouthEast' ) ;
+xmin = 0.5;  xmax = H+0.5;  
+axis( [ xmin xmax V(3) V(4) ] ) ;
+
+h4 = figure(4);
+hold on;
+hqhp = bar( t, php*COP+fchp*etachp_th+fboil*etaboil, bar_width, 'FaceColor','y','EdgeColor','k' ) ;
+hqchp = bar( t,fchp*etachp_th+fboil*etaboil , bar_width, 'FaceColor','r','EdgeColor','k' ) ;
+hqboil = bar( t,fboil*etaboil, bar_width, 'FaceColor','g','EdgeColor','k' ) ;
+hqheat = bar( t, -qheat, bar_width, 'FaceColor','m','EdgeColor','k' ) ;
+xlabel( 'time slot', 'FontSize',12.5 ) ;
+ylabel( {'thermal energy profile of consumption / production /'; ...
+    'storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
+legend( [  hqhp hqchp hqboil hqheat ], 'thermal energy generation qhp',...
+    'thermal energy generation chp','thermal energy generation boiler','heating demand profile','Location','SouthEast' ) ;
 xmin = 0.5;  xmax = H+0.5;  
 axis( [ xmin xmax V(3) V(4) ] ) ;
