@@ -372,23 +372,22 @@ xtot = x+x1+x2+x3;
 bar_width = 1;
 h1 = figure(1);
 hold on;
-hchp = bar( t, gp+zsm+res+fchp*etachp_el,  bar_width, 'FaceColor','k','EdgeColor','k' ) ;
-hbload = bar( t, gp+zsm+res,  bar_width, 'FaceColor','g','EdgeColor','k' ) ;
-hzsm  = bar( t, gp+zsm, bar_width, 'FaceColor','y','EdgeColor','k' ) ;
+hpchp = bar( t, gp+zsm+res+fchp*etachp_el,  bar_width, 'FaceColor','k','EdgeColor','k' ) ;
+hres = bar( t, gp+zsm+res,  bar_width, 'FaceColor','r','EdgeColor','k' ) ;
+hzsm  = bar( t, gp+zsm, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
 hgp  = bar( t, gp, bar_width, 'FaceColor','b','EdgeColor','k' ) ;
-
 hgm  = bar( t, -gm-xtot-bload-php-zsp, bar_width, 'FaceColor','b','EdgeColor','k' ) ;
-hres  = bar( t,-xtot-bload-php-zsp, bar_width, 'FaceColor','m','EdgeColor','k' ) ;
-hpchp  = bar( t,-bload-php-zsp, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
-hzsp = bar( t,-php-zsp, bar_width, 'FaceColor','g','EdgeColor','k' ) ;
-hphp = bar( t,-php, bar_width, 'FaceColor','r','EdgeColor','k' ) ;
+hxtot  = bar( t,-xtot-bload-php-zsp, bar_width, 'FaceColor','y','EdgeColor','k' ) ;
+hbload  = bar( t,-bload-php-zsp, bar_width, 'FaceColor','g','EdgeColor','k' ) ;
+hphp = bar( t,-php-zsp, bar_width, 'FaceColor','m','EdgeColor','k' ) ;
+hzsp = bar( t,-zsp, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
 xlabel( 'time slot', 'FontSize',12.5 ) ;
 ylabel( {'energy profile of consumption / production /'; ...
     'storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
-legend( [ hchp hbload hzsm hgp hgm hres hpchp hzsp hphp], 'controllable loads',...
-    'non controllable loads','importing energy',...
-    'electrical input heat pump','exporting energy',...
-    'renewable energy','electrical generation chp','Location','SouthEast' ) ;
+legend( [ hpchp hres hzsm hgp hgm hxtot hbload hphp hzsp], 'electrical generation chp',...
+    'pv generation','battery discharging positive',...
+    'importing energy','exporting energy',...
+    'controllable loads','non controllable loads','electrical generation heat pump','battery charging negative','Location','SouthEast' ) ;
 V = axis;
 % xmin = 0.5;  xmax = H+0.5;  
 % axis( [ xmin xmax V(3) V(4) ] ) ;
@@ -415,14 +414,17 @@ legend( [  hstop ], 'thermal storage','Location','SouthEast' ) ;
 
 h4 = figure(4);
 hold on;
-hqhp = bar( t, php*COP+fchp*etachp_th+fboil*etaboil, bar_width, 'FaceColor','y','EdgeColor','k' ) ;
-hqchp = bar( t,fchp*etachp_th+fboil*etaboil , bar_width, 'FaceColor','r','EdgeColor','k' ) ;
-hqboil = bar( t,fboil*etaboil, bar_width, 'FaceColor','g','EdgeColor','k' ) ;
-hqheat = bar( t, -qheat, bar_width, 'FaceColor','m','EdgeColor','k' ) ;
+hqhp = bar( t, php*COP+fchp*etachp_th+fboil*etaboil+zvm, bar_width, 'FaceColor','y','EdgeColor','k' ) ;
+hqchp = bar( t,fchp*etachp_th+fboil*etaboil+zvm , bar_width, 'FaceColor','r','EdgeColor','k' ) ;
+hqboil = bar( t,fboil*etaboil+zvm, bar_width, 'FaceColor','g','EdgeColor','k' ) ;
+hzvm = bar( t,zvm, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
+hqheat = bar( t, -qheat-zvp, bar_width, 'FaceColor','m','EdgeColor','k' ) ;
+hzvp = bar( t,-zvp, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
 xlabel( 'time slot', 'FontSize',12.5 ) ;
 ylabel( {'thermal energy profile of consumption / production /'; ...
     'storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
-legend( [  hqhp hqchp hqboil hqheat ], 'thermal energy generation qhp',...
-    'thermal energy generation chp','thermal energy generation boiler','heating demand profile','Location','SouthEast' ) ;
+legend( [  hqhp hqchp hqboil hzvm hqheat hzvp ], 'thermal energy generation qhp',...
+    'thermal energy generation chp','thermal energy generation boiler','thermal storage discharge positive','heat demand','thermal storage charge negative','Location','SouthEast' ) ;
 % xmin = 0.5;  xmax = H+0.5;  
 % axis( [ xmin xmax V(3) V(4) ] ) ;
+
