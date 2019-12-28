@@ -1,13 +1,14 @@
 clearvars
 clc
 close all
-
+%control horizon
 H=24;
-
+%prediction horizon
+e=48;
 % Objective
 nC = H; %Number of Continuous Variables
 nB = H; %Number of Binary Variables
-beta = 1;
+beta = 1;% penalty parameter 
 % Build xtype vector
 xtype = [repmat('C',1,5*nC),repmat('B',1,nB),repmat('C',1,nC),repmat('B',1,nB),...
     repmat('C',1,nC),repmat('B',1,nB),repmat('C',1,nC),repmat('B',1,nB),repmat('C',1,nC),...
@@ -15,9 +16,9 @@ xtype = [repmat('C',1,5*nC),repmat('B',1,nB),repmat('C',1,nC),repmat('B',1,nB),.
     repmat('B',1,nB),repmat('C',1,nC),repmat('B',1,nB),repmat('C',1,2*nC)];
 % Cost coefficients 
 COM = 0.015;% operational and maintenance cost of CHP
-kf = ones(H,1)*0.08; %fuel cost
-kb2 = ones(H,1)*0.040;
-        kb2(7:19) = 0.065 ;
+kf = ones(H,1)*0.02; %fuel cost
+kb2 = ones(H,1)*0.040;  %electricity cost off peak
+        kb2(7:19) = 0.065 ;% electricity cost peak
         kb1= (repmat(kb2',1,365));
         
 
@@ -29,35 +30,36 @@ opts = spreadsheetImportOptions("NumVariables", 1);
 
 % Specify sheet and range
 opts.Sheet = "Foglio1";
-opts.DataRange = "C2:C8761";
+opts.DataRange = "C2:C8785";
 
 % Specify column names and types
 opts.VariableNames = "numberhouseholds";
 opts.SelectedVariableNames = "numberhouseholds";
 opts.VariableTypes = "double";
 
-% Import the data bload
+% Import the data
 loads2015 = readtable("C:\Users\francesco\Desktop\DATI\loads2015.xlsx", opts, "UseExcel", false);
 %% Setup the Import Options
 opts = spreadsheetImportOptions("NumVariables", 1);
 
 % Specify sheet and range
 opts.Sheet = "Foglio1";
-opts.DataRange = "E2:E8761";
+opts.DataRange = "E2:E8785";
 
 % Specify column names and types
 opts.VariableNames = "totalnumberofhouseholdsinnetherlands";
 opts.SelectedVariableNames = "totalnumberofhouseholdsinnetherlands";
 opts.VariableTypes = "double";
 
-% Import the data heating
-heatingwaterspace2013 = readtable("C:\Users\francesco\Desktop\DATI\heatingwater&space2013.xlsx", opts, "UseExcel", false);
+% Import the data
+heatingwaterspace2015 = readtable("C:\Users\francesco\Desktop\DATI\heatingwater&space2015.xlsx",...
+    opts, "UseExcel", false);
 %% Setup the Import Options
 opts = spreadsheetImportOptions("NumVariables", 1);
 
 % Specify sheet and range
 opts.Sheet = "Foglio1";
-opts.DataRange = "A1:A8760";
+opts.DataRange = "A1:A8784";
 
 % Specify column names and types
 opts.VariableNames = "VarName1";
@@ -65,7 +67,8 @@ opts.SelectedVariableNames = "VarName1";
 opts.VariableTypes = "double";
 
 % Import the data
-dataset2015solarres = readtable("C:\Users\francesco\Desktop\DATI\dataset 2015 solar res.xlsx", opts, "UseExcel", false);
+dataset2015solarres = readtable("C:\Users\francesco\Desktop\DATI\dataset 2015 solar res.xlsx",...
+    opts, "UseExcel", false);
 
 % controllable loads parameters
 %washing machine
@@ -127,13 +130,15 @@ php_min = 1; % minimum heat pump electrical input
 qhp_max = COP*php_max; % maximum heat pump thermal generation
 qhp_min = COP*php_min; % minimum heat pump thermal generation
 %--------------------------------------------------------------------------
-% inizializzazione variabili
+% inizialitation variables
 x=zeros(H,1);
 x1=zeros(H,1);
 x2=zeros(H,1);
 x3=zeros(H,1);
 gp=zeros(H,1);
+deltagp=zeros(H,1);
 gm=zeros(H,1);
+deltagm=zeros(H,1);
 php=zeros(H,1);
 fchp=zeros(H,1);
 fboil=zeros(H,1);
@@ -143,18 +148,18 @@ zvp=zeros(H,1);
 zvm=zeros(H,1);
 alfa1=zeros(H,1);
 alfa2=zeros(H,1);
-% receding horizon
-
+% receding horizon control
+% non controllable loads consumption profile
 bload0 = [table2array(loads2015)]' ;    
 % thermal loads consumption profile
-qheat0 = [table2array(heatingwaterspace2013)]' ;  
+qheat0 = [table2array(heatingwaterspace2015)]' ;  
 % RES production profile (with 5 KW installed capacity)
 res0 = 5*[table2array(dataset2015solarres)]' ;  
 %box uncertainty
-deltab0 = 1.4*bload0;
-deltaq0 = 1.4*qheat0;
-deltar0 = 1.4*res0;
-for j=0:47
+deltab0 = 1.4*bload0; %uncertainty set non controllable load
+deltaq0 = 1.4*qheat0; %uncertainty set heating demand
+deltar0 = 1.4*res0; %undertainty set pv production
+for j=0:(e-1)
      kb = kb1(j+1:j+H);
      ks= ks1(j+1:j+H);
     bload1=[bload0(j+1:j+H)]'
@@ -164,13 +169,13 @@ for j=0:47
     deltaq =[deltaq0(j+1:j+H)]'
     deltar =[deltar0(j+1:j+H)]'
 %robustness factors
-lb=0;
-lr=0;
-lq=0;
+lb=0;%robustness factor non controllable loads
+lr=0;%robustess factor pv production
+lq=0;%robustness factor heating demand
 
 
 
-% resolution through "opti"
+% resolution through "gurobi"
 %--------------------------------------------------------------------------
 % solve the quadratic programming problem:
 %              min 0.5*x'*Q*x + f'*x    
@@ -192,7 +197,7 @@ f = [zeros(1,H*4),kb,zeros(1,H),-ks,zeros(1,H*3),(kf'+ones(1,H)*COM*etachp_tot),
 %washing machine controllable load
 Aeq_x = [ ones(1,H) zeros(1,23*H) ];
 beq_x = Xtot;
-%oven  controllabl load
+%oven  controllable load
 Aeq_x1 = [ zeros(1,H) ones(1,H) zeros(1,22*H) ];
 beq_x1 = X1tot;
 %dishwasher controllable load
@@ -407,17 +412,13 @@ model.Q = sparse(Q);
 %gurobi optimization
 result = gurobi(model)
 xval = result.x;
-% Create OPTI Object
-%Opt = opti('qp',Q,f,'ineq',A,b,'eq',Aeq,beq,'lb',lb,'ub',ub,'xtype',xtype);
 
-% Solve the MIQP problem
-%[xval,fval,exitflag,info] = solve(Opt)
 
-%
+
 %--------------------------------------------------------------------------
 % results analysis
 %--------------------------------------------------------------------------
-%inputs
+%input data
 bload(j+1,:)=bload1(1);
 res(j+1,:)=res1(1);
 qheat(j+1,:)=qheat1(1);
@@ -433,8 +434,12 @@ x2(j+1,:) = xval(2*H+1);
 x3(j+1,:) = xval(3*H+1);
 % extract gp
 gp(j+1,:) = xval(4*H+1);
+% extract deltagp
+deltagp = xval(5*H+1);
 %extract gm
 gm(j+1,:) = xval(6*H+1);
+%extract deltagm
+deltagm = xval(7*H+1);
 %extract php
 php(j+1,:) = xval(8*H+1);
 %extract fchp
@@ -455,10 +460,45 @@ alfa2(j+1,:) = xval(23*H+1);
 end
 
 xtot = x+x1+x2+x3;
-%costo totale
-Ctot = kb1(1,1:48)*gp-ks1(1,1:48)*gm+((0.08+COM*etachp_tot)*ones(1,48))*fchp+(0.08*ones(1,48))*fboil+beta*(((kb1(1,1:48)*(alfa1.^2))+(kb1(1,1:48)*(alfa1.^2))));
+%total cost
+Ctot = kb1(1,1:e)*gp-ks1(1,1:e)*gm+((0.08+COM*etachp_tot)*ones(1,e))*fchp+...
+    (0.08*ones(1,e))*fboil+beta*(((kb1(1,1:e)*(alfa1.^2))+(kb1(1,1:e)*(alfa1.^2))));
+%MonteCarlo simulation (MC iterations)
+MC=1000;
+for j=1:e
+        b=bload(j)+TruncatedGaussian(0.2,[0 inf]-bload(j),[MC 1])
+        r=res(j)+TruncatedGaussian(0.2,[0 inf]-res(j),[MC 1])
+        q=qheat(j)+TruncatedGaussian(0.2,[0 inf]-qheat(j),[MC 1])
+        matb(j,:)=b
+        matres(j,:)=r
+        matq(j,:)=q
+        
+end
+for i=1:MC
+  mel=-(x+x1+x2+x3)-matb(:,i)+fchp*etachp_el-php-matres(:,i)-zsp+zsm+deltagp*gp_max-deltagm*gm_max;  
+  matel(i,:)=mel
+  mq= fboil*etaboil+fchp*etachp_th+php*COP-zvp+zvm-matq(:,i)
+  matth(i,:)=mq
+end
+%extract violation electrical balance
+cv= 0.20; % violation cost (EUR per KWh)
+matel(matel >0) =0;
+Cv = matel*(cv*ones(e,1));
+cvaverage= (sum(Cv))/MC;
+% average violation
+matel(matel<0) =1; %quante volte violo il vincolo mediamente all'interno del prediction horizon
+VIOL= matel*ones(e,1);
+violmedia= ((sum(VIOL))/(e*MC))*100;%valore in percentuale
+%violation thermal balance
+matth(matth >0) =0;
+Cvth = matth*(cv*ones(e,1));
+cvaverageth= (sum(Cvth))/MC;
+% average violation
+matth(matth<0) =1; %quante volte violo il vincolo mediamente in 24 ore
+VIOLth= matth*ones(e,1);
+violmediath= ((sum(VIOLth))/(e*MC))*100; %valore in percentuale
 % time slots
-t = 1:200;
+t = 1:e;
 % figure plot
 bar_width = 1;
 h1 = figure(1);
@@ -478,7 +518,8 @@ ylabel( {'energy profile of consumption / production /'; ...
 legend( [ hpchp hres hzsm hgp hgm hxtot hbload hphp hzsp], 'electrical generation chp',...
     'pv generation','battery discharging positive',...
     'importing energy','exporting energy',...
-    'controllable loads','non controllable loads','electrical generation heat pump','battery charging negative','Location','SouthEast' ) ;
+    'controllable loads','non controllable loads','electrical generation heat pump',...
+    'battery charging negative','Location','SouthEast' ) ;
 V = axis;
 xmin = 0.5;  xmax = H+0.5;  
 axis( [ xmin xmax V(3) V(4) ] ) ;
@@ -515,6 +556,17 @@ xlabel( 'time slot', 'FontSize',12.5 ) ;
 ylabel( {'thermal energy profile of consumption / production /'; ...
     'storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
 legend( [  hqhp hqchp hqboil hzvm hqheat hzvp ], 'thermal energy generation qhp',...
-    'thermal energy generation chp','thermal energy generation boiler','thermal storage discharge positive','heat demand','thermal storage charge negative','Location','SouthEast' ) ;
+    'thermal energy generation chp','thermal energy generation boiler',...
+    'thermal storage discharge positive','heat demand','thermal storage charge negative','Location','SouthEast' ) ;
+xmin = 0.5;  xmax = H+0.5;  
+axis( [ xmin xmax V(3) V(4) ] ) ;
+
+h5 = figure(5);
+hold on;
+hgp = bar( t, gp, bar_width, 'FaceColor','c','EdgeColor','b' ) ;
+hgm = bar( t, -gm, bar_width, 'FaceColor','c','EdgeColor','b' ) ;
+xlabel( 'time slot', 'FontSize',12.5 ) ;
+ylabel( {'energy profile of'; 'importing/exporting energy [KWh]'}, 'FontSize',12.5 ) ;
+legend( [  hgp hgm ], 'importing energy','exporting energy','Location','SouthEast' ) ;
 xmin = 0.5;  xmax = H+0.5;  
 axis( [ xmin xmax V(3) V(4) ] ) ;
