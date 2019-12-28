@@ -464,6 +464,10 @@ xtot = x+x1+x2+x3;
 Ctot = kb1(1,1:e)*gp-ks1(1,1:e)*gm+((0.08+COM*etachp_tot)*ones(1,e))*fchp+...
     (0.08*ones(1,e))*fboil+beta*(((kb1(1,1:e)*(alfa1.^2))+(kb1(1,1:e)*(alfa1.^2))));
 %MonteCarlo simulation (MC iterations)
+%adding a normally distributed random sequence with zero mean and standard
+%deviation equal to 0.2[KWh] to the nominal predicted value
+%Truncated Gaussian with interval [0 inf], because isn't possible to have
+%neagtive values
 MC=1000;
 for j=1:e
         b=bload(j)+TruncatedGaussian(0.2,[0 inf]-bload(j),[MC 1])
@@ -484,20 +488,23 @@ end
 cv= 0.20; % violation cost (EUR per KWh)
 matel(matel >0) =0;
 Cv = matel*(cv*ones(e,1));
-cvaverage= (sum(Cv))/MC;
+cvaverage= (sum(Cv))/MC; %average cost of power energy balance violation during the precition horizon
 % average violation
 matel(matel<0) =1; %quante volte violo il vincolo mediamente all'interno del prediction horizon
 VIOL= matel*ones(e,1);
-violmedia= ((sum(VIOL))/(e*MC))*100;%valore in percentuale
+violmedia= ((sum(VIOL))/(e*MC))*100; %violation in % of power energy balance during prediction horizon
 %violation thermal balance
 matth(matth >0) =0;
 Cvth = matth*(cv*ones(e,1));
-cvaverageth= (sum(Cvth))/MC;
+cvaverageth= (sum(Cvth))/MC; %average cost of thermal balance violation during the prediction horizon
 % average violation
 matth(matth<0) =1; %quante volte violo il vincolo mediamente in 24 ore
 VIOLth= matth*ones(e,1);
-violmediath= ((sum(VIOLth))/(e*MC))*100; %valore in percentuale
-% time slots
+violmediath= ((sum(VIOLth))/(e*MC))*100; %violation in % of thermal balance during prediction horizon 
+%total cost considering average violation cost of electrical and thermal
+%balance
+CTOT= Ctot+cvaverage+cvaverageth;
+\% time slots
 t = 1:e;
 % figure plot
 bar_width = 1;
