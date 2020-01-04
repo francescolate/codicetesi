@@ -4,7 +4,7 @@ close all
 %control horizon
 H=24;
 %prediction horizon
-e=48;
+e=24;
 % Objective
 nC = H; %Number of Continuous Variables
 nB = H; %Number of Binary Variables
@@ -16,13 +16,12 @@ xtype = [repmat('C',1,5*nC),repmat('B',1,nB),repmat('C',1,nC),repmat('B',1,nB),.
     repmat('B',1,nB),repmat('C',1,nC),repmat('B',1,nB),repmat('C',1,2*nC)];
 % Cost coefficients 
 COM = 0.015;% operational and maintenance cost of CHP
-kf = ones(H,1)*0.02; %fuel cost
-kb2 = ones(H,1)*0.040;  %electricity cost off peak
-        kb2(7:19) = 0.065 ;% electricity cost peak
+kf = ones(H,1)*0.08; %fuel cost
+kb2 = ones(H,1)*0.120;  %electricity cost off peak (with taxes and VAT included)
+        kb2(7:19) = 0.145 ;% electricity cost peak
         kb1= (repmat(kb2',1,365));
-        
-
-        ks2 = ones(H,1)*0.038;
+ks2 = ones(H,1)*0.020;  %electricity cost off peak (without taxes and VAT included)
+        ks2(7:19) = 0.045 ;% electricity cost peak
         ks1= (repmat(ks2',1,365));
 % non-controllable loads consumption profile
 %% Setup the Import Options
@@ -30,11 +29,11 @@ opts = spreadsheetImportOptions("NumVariables", 1);
 
 % Specify sheet and range
 opts.Sheet = "Foglio1";
-opts.DataRange = "C2:C8785";
+opts.DataRange = "D2:D8785";
 
 % Specify column names and types
-opts.VariableNames = "numberhouseholds";
-opts.SelectedVariableNames = "numberhouseholds";
+opts.VariableNames = "NCKWh";
+opts.SelectedVariableNames = "NCKWh";
 opts.VariableTypes = "double";
 
 % Import the data
@@ -47,8 +46,8 @@ opts.Sheet = "Foglio1";
 opts.DataRange = "E2:E8785";
 
 % Specify column names and types
-opts.VariableNames = "totalnumberofhouseholdsinnetherlands";
-opts.SelectedVariableNames = "totalnumberofhouseholdsinnetherlands";
+opts.VariableNames = "householdconsumptionKWh";
+opts.SelectedVariableNames = "householdconsumptionKWh";
 opts.VariableTypes = "double";
 
 % Import the data
@@ -72,21 +71,21 @@ dataset2015solarres = readtable("C:\Users\francesco\Desktop\DATI\dataset 2015 so
 
 % controllable loads parameters
 %washing machine
-xmin = 0.1  *ones(H,1); % minimum required energy per slot
-xmax = 1.3 *ones(H,1); % maximum required energy per slot
-Xtot = 5;
+xmin = 0.05  *ones(H,1); % minimum required energy per slot
+xmax = 0.3 *ones(H,1); % maximum required energy per slot
+Xtot = 1.5;
 %oven
-xmin1 = 0.2*ones(H,1);
-xmax1 = 5*ones(H,1);
-X1tot = 10;
+xmin1 = zeros(H,1);
+xmax1 = 0.1*ones(H,1);
+X1tot = 0.5;
 %dishwasher
-xmin2 = 0.2*ones(H,1);
-xmax2 = 1.5*ones(H,1);
-X2tot = 5;
+xmin2 = zeros(H,1);
+xmax2 = 0.3*ones(H,1);
+X2tot = 1.2;
 %cooktop
-xmin3 = 0.2*ones(H,1);
-xmax3 = 1.6*ones(H,1);
-X3tot = 10;
+xmin3 = zeros(H,1);
+xmax3 = 0.3*ones(H,1);
+X3tot = 0.8;
 % electrical storage parameters
 sp_max = 1; % maximum charging energy per slot
 sm_max = sp_max; % maximum discharging energy per slot
@@ -95,14 +94,14 @@ S0 = 0; % initial state of charge
 etaps=0.95; % charging battery efficiency 
 etams=0.95; % discharging battery efficiency
 % thermal storage parameters
-spv_max = 10; % maximum charging thermal storage per slot
+spv_max = 5; % maximum charging thermal storage per slot
 smv_max = spv_max; % maximum discharging thermal storage energy per slot
-Smaxv = 30; % maximum state of charge of thermal storage
+Smaxv = 20; % maximum state of charge of thermal storage
 S0v = 0; % initial state of charge of thermal storage
 etapv=0.95; % charging thermal storage efficiency 
 etamv=0.95; % discharging thermal storage efficiency
 % importing energy parameters
-gp_max = 5; %maximum importing energy
+gp_max = 2; %maximum importing energy
 gpsoft = 0.8*gp_max; % maximum soft importing energy
 % exporting energy parameters
 gm_max = 2; % maximum exporting energy
@@ -119,14 +118,14 @@ qchp_max = fchp_max*etachp_th; % maximum thermal generation CHP
 qchp_min = fchp_min*etachp_th; % minimum thermal generation CHP
 % boiler parameters
 etaboil = 1; % boiler efficiency
-fboil_max = 20; % maximum fuel burned in boiler
-fboil_min = 0.5; % minimum fuel burned in boiler
+fboil_max = 10; % maximum fuel burned in boiler
+fboil_min = 0.2; % minimum fuel burned in boiler
 qboil_max = fboil_max*etaboil; %maximum boiler thermal generation 
 qboil_min = fboil_min*etaboil; %minimum boiler thermal generation
 % heat pump paramters
 COP = 4; %coefficient of performance of the heat pump
-php_max = 6.25; % maximum heat pump electrical input 
-php_min = 1; % minimum heat pump electrical input
+php_max = 2; % maximum heat pump electrical input 
+php_min = 0.5; % minimum heat pump electrical input
 qhp_max = COP*php_max; % maximum heat pump thermal generation
 qhp_min = COP*php_min; % minimum heat pump thermal generation
 %--------------------------------------------------------------------------
@@ -169,9 +168,9 @@ for j=0:(e-1)
     deltaq =[deltaq0(j+1:j+H)]'
     deltar =[deltar0(j+1:j+H)]'
 %robustness factors
-lb=0;%robustness factor non controllable loads
-lr=0;%robustess factor pv production
-lq=0;%robustness factor heating demand
+lbload=0.3;%robustness factor non controllable loads
+lr=0.3;%robustess factor pv production
+lq=0.3;%robustness factor heating demand
 
 
 
@@ -209,7 +208,7 @@ beq_x3 = X3tot;
 %equality electrical balance, H equality constraints
 Aeq_el = [eye(H), eye(H), eye(H), eye(H), -eye(H), zeros(H), eye(H), zeros(H),...
     eye(H),zeros(H),-eye(H)*etachp_el, zeros(H,3*H),eye(H),zeros(H),-eye(H),zeros(H,7*H)];
-beq_el = [(res1-0.5*lr*deltar)-(bload1+0.5*lb*deltab)];
+beq_el = [(res1-0.5*lr*deltar)-(bload1+0.5*lbload*deltab)];
 %equality Thermal energy balance, H equality constraints
 Aeq_th = [zeros(H,8*H),COP*eye(H),zeros(H), etachp_th*eye(H),zeros(H),...
     etaboil*eye(H),zeros(H,5*H),-eye(H),zeros(H),eye(H), zeros(H,3*H)];
@@ -419,9 +418,9 @@ xval = result.x;
 % results analysis
 %--------------------------------------------------------------------------
 %input data
-bload(j+1,:)=bload1(1);
-res(j+1,:)=res1(1);
-qheat(j+1,:)=qheat1(1);
+bload(j+1,:)=bload1(1)+0.5*lbload*deltab(1);
+res(j+1,:)=res1(1)-0.5*lr*deltar(1);
+qheat(j+1,:)=qheat1(1)+0.5*lq*deltaq(1);
 
 %extract decision variables
 % extract x
@@ -470,16 +469,22 @@ Ctot = kb1(1,1:e)*gp-ks1(1,1:e)*gm+((0.08+COM*etachp_tot)*ones(1,e))*fchp+...
 %neagtive values
 MC=1000;
 for j=1:e
-        b=bload(j)+TruncatedGaussian(0.2,[0 inf]-bload(j),[MC 1])
-        r=res(j)+TruncatedGaussian(0.2,[0 inf]-res(j),[MC 1])
-        q=qheat(j)+TruncatedGaussian(0.2,[0 inf]-qheat(j),[MC 1])
+        b=bload1(j)+TruncatedGaussian(0.2,[-inf inf]-bload1(j),[MC 1])
+        if res(j)>0
+        r=res1(j)+TruncatedGaussian(0.2,[0 inf]-res1(j),[MC 1])
+        else 
+            r=zeros(MC,1)
+        end
+        q=qheat1(j)+TruncatedGaussian(0.2,[-inf inf]-qheat1(j),[MC 1])
         matb(j,:)=b
         matres(j,:)=r
         matq(j,:)=q
-        
+         
 end
+matb(matb<0) =0;
+matq(matq<0) =0;
 for i=1:MC
-  mel=-(x+x1+x2+x3)-matb(:,i)+fchp*etachp_el-php-matres(:,i)-zsp+zsm+deltagp*gp_max-deltagm*gm_max;  
+  mel=-(x+x1+x2+x3)-matb(:,i)+fchp*etachp_el-php+matres(:,i)-zsp+zsm+deltagp*gp_max-deltagm*gm_max;  
   matel(i,:)=mel
   mq= fboil*etaboil+fchp*etachp_th+php*COP-zvp+zvm-matq(:,i)
   matth(i,:)=mq
@@ -488,23 +493,23 @@ end
 cv= 0.20; % violation cost (EUR per KWh)
 matel(matel >0) =0;
 Cv = matel*(cv*ones(e,1));
-cvaverage= (sum(Cv))/MC; %average cost of power energy balance violation during the precition horizon
+cvaverage= -(sum(Cv))/MC;
 % average violation
 matel(matel<0) =1; %quante volte violo il vincolo mediamente all'interno del prediction horizon
 VIOL= matel*ones(e,1);
-violmedia= ((sum(VIOL))/(e*MC))*100; %violation in % of power energy balance during prediction horizon
+violmedia= ((sum(VIOL))/(e*MC))*100;%valore in percentuale
 %violation thermal balance
 matth(matth >0) =0;
 Cvth = matth*(cv*ones(e,1));
-cvaverageth= (sum(Cvth))/MC; %average cost of thermal balance violation during the prediction horizon
+cvaverageth= -(sum(Cvth))/MC;
 % average violation
 matth(matth<0) =1; %quante volte violo il vincolo mediamente in 24 ore
 VIOLth= matth*ones(e,1);
-violmediath= ((sum(VIOLth))/(e*MC))*100; %violation in % of thermal balance during prediction horizon 
+violmediath= ((sum(VIOLth))/(e*MC))*100; %valore in percentuale
 %total cost considering average violation cost of electrical and thermal
 %balance
 CTOT= Ctot+cvaverage+cvaverageth;
-\% time slots
+% time slots
 t = 1:e;
 % figure plot
 bar_width = 1;
@@ -538,6 +543,7 @@ hstom = bar( t, -zsm, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
 xlabel( 'time slot', 'FontSize',12.5 ) ;
 ylabel( {'energy profile of'; 'electrical storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
 legend( [  hstop ], 'electrical storage','Location','SouthEast' ) ;
+V = axis;
 xmin = 0.5;  xmax = H+0.5;  
 axis( [ xmin xmax V(3) V(4) ] ) ;
 
@@ -548,6 +554,7 @@ hstom = bar( t, -zvm, bar_width, 'FaceColor','c','EdgeColor','k' ) ;
 xlabel( 'time slot', 'FontSize',12.5 ) ;
 ylabel( {'energy profile of'; 'thermal storage activities in the smart home [KWh]'}, 'FontSize',12.5 ) ;
 legend( [  hstop ], 'thermal storage','Location','SouthEast' ) ;
+V = axis;
 xmin = 0.5;  xmax = H+0.5;  
 axis( [ xmin xmax V(3) V(4) ] ) ;
 
@@ -565,6 +572,7 @@ ylabel( {'thermal energy profile of consumption / production /'; ...
 legend( [  hqhp hqchp hqboil hzvm hqheat hzvp ], 'thermal energy generation qhp',...
     'thermal energy generation chp','thermal energy generation boiler',...
     'thermal storage discharge positive','heat demand','thermal storage charge negative','Location','SouthEast' ) ;
+V = axis;
 xmin = 0.5;  xmax = H+0.5;  
 axis( [ xmin xmax V(3) V(4) ] ) ;
 
@@ -575,5 +583,6 @@ hgm = bar( t, -gm, bar_width, 'FaceColor','c','EdgeColor','b' ) ;
 xlabel( 'time slot', 'FontSize',12.5 ) ;
 ylabel( {'energy profile of'; 'importing/exporting energy [KWh]'}, 'FontSize',12.5 ) ;
 legend( [  hgp hgm ], 'importing energy','exporting energy','Location','SouthEast' ) ;
+V = axis;
 xmin = 0.5;  xmax = H+0.5;  
 axis( [ xmin xmax V(3) V(4) ] ) ;
