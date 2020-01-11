@@ -2,14 +2,16 @@ clearvars
 clc
 close all
 
-test_case =1;
+test_case =3;
 %test plan:
 %- case 1: with PV,CHP,BOILER,HP,TES,ESS
-%- case 2: with    CHP,BOILER,HP,TES,ESS
+%- case 2: with   ,CHP,BOILER,HP,TES,ESS
 %- case 3: with PV,   ,      ,HP,TES,ESS
 %- case 4: with PV,CHP,BOILER,  ,TES,ESS
 %- case 5: with PV,CHP,BOILER,HP,TES,
-
+%- case 6: with PV,CHP,      ,  ,TES,ESS
+%- case 7: with PV,CHP,BOILER,HP,   ,
+%- case 8: with PV,CHP,BOILER,HP,   ,ESS
 %control horizon
 H=24;
 %prediction horizon
@@ -106,7 +108,7 @@ xmax4 = 0.5*ones(H,1);
 X3tot = 4;
 % electrical storage parameters
 switch test_case
-    case {5}
+    case {5,7}
         sp_max = 0;
     otherwise
         sp_max = 5; % maximum charging energy per slot
@@ -118,7 +120,13 @@ S0 = 0; % initial state of charge
 etaps=0.95; % charging battery efficiency 
 etams=0.95; % discharging battery efficiency
 % thermal storage parameters
-spv_max = 5; % maximum charging thermal storage per slot
+switch test_case
+    case {7,8}
+        spv_max = 0;
+    otherwise
+        spv_max = 5; % maximum charging thermal sotrage per slot
+end
+
 smv_max = spv_max; % maximum discharging thermal storage energy per slot
 Smaxv = 20; % maximum state of charge of thermal storage
 S0v = 0; % initial state of charge of thermal storage
@@ -150,7 +158,7 @@ qchp_min = fchp_min*etachp_th; % minimum thermal generation CHP
 % boiler parameters
 etaboil = 1; % boiler efficiency
 switch test_case
-    case{3}
+    case{3,6}
         fboil_max=0;
         fboil_min=0;
     otherwise
@@ -163,12 +171,12 @@ qboil_min = fboil_min*etaboil; %minimum boiler thermal generation
 % heat pump paramters
 COP = 4; %coefficient of performance of the heat pump
 switch test_case
-    case{4}
+    case{4,6}
         php_max=0;
         php_min=0;
     otherwise
         php_max = 10; % maximum heat pump electrical input 
-        php_min = 2.5; % minimum heat pump electrical input
+        php_min = 1.5; % minimum heat pump electrical input
 end
 
 qhp_max = COP*php_max; % maximum heat pump thermal generation
@@ -650,3 +658,4 @@ legend( [  hgp hgm ], 'importing energy','exporting energy','Location','SouthEas
 V = axis;
 xmin = 0.5;  xmax = H+0.5;  
 axis( [ xmin xmax V(3) V(4) ] ) ;
+
