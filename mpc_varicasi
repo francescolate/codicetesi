@@ -520,6 +520,48 @@ Ctot = kb1(1,1:e)*gp-ks1(1,1:e)*gm+((0.08+COM*etachp_tot)*ones(1,e))*fchp+...
 %deviation equal to 0.2[KWh] to the nominal predicted value
 %Truncated Gaussian with interval [0 inf], because isn't possible to have
 %neagtive values
+MC=1000;
+for j=1:e
+        b=bload1(j)+TruncatedGaussian(0.2,[-inf inf]-bload1(j),[MC 1])
+        if res(j)>0
+        r=res1(j)+TruncatedGaussian(0.2,[0 inf]-res1(j),[MC 1])
+        else 
+            r=zeros(MC,1)
+        end
+        q=qheat1(j)+TruncatedGaussian(0.2,[-inf inf]-qheat1(j),[MC 1])
+        matb(j,:)=b
+        matres(j,:)=r
+        matq(j,:)=q
+         
+end
+matb(matb<0) =0;
+matq(matq<0) =0;
+for i=1:MC
+  mel=-(x+x1+x2+x3)-matb(:,i)+fchp*etachp_el-php+matres(:,i)-zsp+zsm+deltagp*gp_max-deltagm*gm_max;  
+  matel(i,:)=mel
+  mq= fboil*etaboil+fchp*etachp_th+php*COP-zvp+zvm-matq(:,i)
+  matth(i,:)=mq
+end
+%extract violation electrical balance
+cv= 0.20; % violation cost (EUR per KWh)
+matel(matel >0) =0;
+Cv = matel*(cv*ones(e,1));
+cvaverage= -(sum(Cv))/MC;
+% average violation
+matel(matel<0) =1; %quante volte violo il vincolo mediamente all'interno del prediction horizon
+VIOL= matel*ones(e,1);
+violmedia= ((sum(VIOL))/(e*MC))*100;%valore in percentuale
+%violation thermal balance
+matth(matth >0) =0;
+Cvth = matth*(cv*ones(e,1));
+cvaverageth= -(sum(Cvth))/MC;
+% average violation
+matth(matth<0) =1; %quante volte violo il vincolo mediamente in 24 ore
+VIOLth= matth*ones(e,1);
+violmediath= ((sum(VIOLth))/(e*MC))*100; %valore in percentuale
+%total cost considering average violation cost of electrical and thermal
+%balance
+CTOT= Ctot+cvaverage+cvaverageth;
 
 % time slots
 t = 1:e;
