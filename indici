@@ -1,0 +1,44 @@
+Ctotodaily= reshape(kb1(1:8760),24,365).*reshape(gp',24,365)-reshape(ks1(1:8760),24,365).*reshape(gm',24,365)+...
+    ((0.08+COM*etachp_tot)*ones(24,365)).*reshape(fchp',24,365)+...
+    (0.08*ones(24,365)).*reshape(fboil',24,365)+beta*(((reshape(kb1(1:8760),24,365).*(reshape(alfa1.^2',24,365)))+(reshape(ks1(1:8760),24,365).*(reshape(alfa2.^2',24,365)))));
+Ctotdaily1= sum(Ctotodaily)';
+%self supply
+gmtot=sum(reshape(gm,24,365))';
+restot= sum(reshape(res,24,365))';
+fchptot=sum(reshape(fchp,24,365))';
+pchptot=fchptot*etachp_el;
+sst= ones(365,1)- gmtot./(restot+pchptot);
+%energy indipendence
+gptot=(sum(reshape(gp,24,365)));
+constot=(sum(reshape(php,24,365))+sum(reshape(bload,24,365))+sum(reshape(xtot,24,365)));
+eit=1-gptot./constot;
+%fesr
+fueltot=(sum(reshape(fboil*etaboil,24,365))+sum(reshape(fchp*etachp_th,24,365)));
+qheattot=sum(reshape(qheat,24,365));
+fesr= 1-fueltot./qheattot;
+%annual
+sstannual= 1-sum(gm)/(sum(res)+sum(fchp*etachp_el));
+eitannual=1-sum(gp)/(sum(php)+sum(bload)+sum(xtot));
+fesrannual=1-(sum(fboil*etaboil)+sum(fchp*etachp_th))/sum(qheat);
+%plots
+v=[sst eit' Ctotdaily1 fesr'];
+h1=figure(1); hold on; grid on;
+plot(v(:,1));
+ylabel('self-supply,in [0,1] range');
+xlabel('Time[day]');
+legend('self-supply')
+h2=figure(2); hold on; grid on;
+plot(v(:,2));
+ylabel('energy independence,in [0,1] range');
+xlabel('Time[day]');
+legend('energy independence')
+h3=figure(3); hold on; grid on;
+plot(v(:,3));
+ylabel('daily total energy cost[EURO]');
+xlabel('Time[day]');
+legend('total energy cost')
+h4=figure(4); hold on; grid on;
+plot(v(:,4));
+ylabel('fuel energy saving ratio, in [0,1] range');
+xlabel('Time[day]');
+legend('fesr')
